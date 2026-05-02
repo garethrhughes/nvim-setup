@@ -128,7 +128,6 @@ return {
       },
     },
     config = function(_, opts)
-      opts.highlights = require("catppuccin.groups.integrations.bufferline").get()
       require("bufferline").setup(opts)
     end,
   },
