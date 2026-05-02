@@ -41,7 +41,11 @@ return {
     },
     config = function(_, opts)
       require("catppuccin").setup(opts)
-      vim.cmd.colorscheme("catppuccin")
+      -- vim.schedule defers until after lazy.nvim has finished updating the rtp,
+      -- preventing the "theme not found" warning during :Lazy sync.
+      vim.schedule(function()
+        vim.cmd.colorscheme("catppuccin")
+      end)
     end,
   },
 
