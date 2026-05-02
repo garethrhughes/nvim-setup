@@ -20,6 +20,7 @@ vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
 require("lazy").setup("plugins", {
+  rocks = { enabled = false },
   defaults = { lazy = true },
   install = { colorscheme = { "catppuccin", "habamax" } },
   checker = { enabled = false }, -- disable automatic update checks
