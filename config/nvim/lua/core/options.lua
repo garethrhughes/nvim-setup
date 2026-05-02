@@ -6,6 +6,8 @@ local opt = vim.opt
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
+opt.fillchars = { eob = " " }
+
 -- UI
 opt.number = true
 opt.relativenumber = true
