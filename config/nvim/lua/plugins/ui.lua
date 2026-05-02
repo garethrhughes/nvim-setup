@@ -409,7 +409,7 @@ return {
       -- For `nvim .` (or any single dir arg): cd into it, drop the directory
       -- buffer nvim created, draw alpha into the current window, then open
       -- neo-tree. We force-bypass alpha's should_skip_alpha guard by calling
-      -- start(true) only after we've cleared the dir buffer's contents.
+      -- start(false) after we've cleared the dir buffer's contents.
       vim.api.nvim_create_autocmd("VimEnter", {
         group = vim.api.nvim_create_augroup("AlphaDirArg", { clear = true }),
         nested = true,
@@ -423,6 +423,9 @@ return {
             return
           end
           vim.cmd("cd " .. vim.fn.fnameescape(arg))
+          -- Suppress AlphaOnLastClose while we rearrange buffers; the empty
+          -- buffer left after wiping the dir buffer would otherwise trigger it.
+          vim.g._alpha_dir_startup = true
           -- Wipe the directory buffer that argv created
           for _, buf in ipairs(vim.api.nvim_list_bufs()) do
             if vim.api.nvim_buf_is_valid(buf) then
@@ -432,20 +435,30 @@ return {
               end
             end
           end
-          -- Open neo-tree FIRST so alpha renders into its final width
-          -- (avoids the flicker where alpha draws fullscreen then shifts right
-          -- when neo-tree opens).
+          -- Open neo-tree so alpha renders into the correct (narrower) width.
           vim.cmd("Neotree show")
-          -- Move focus back to the main window
-          for _, win in ipairs(vim.api.nvim_list_wins()) do
-            if vim.bo[vim.api.nvim_win_get_buf(win)].filetype ~= "neo-tree" then
-              vim.api.nvim_set_current_win(win)
-              break
+          -- Defer alpha.start past the current tick. neo-tree schedules an
+          -- async set_current_win(original_win) callback; if we call
+          -- alpha.start synchronously that window gets destroyed before the
+          -- callback fires (invalid window id). vim.defer_fn(fn, 0) fires
+          -- after all pending vim.schedule callbacks, so neo-tree's callback
+          -- completes first and the window is safe to use.
+          vim.defer_fn(function()
+            -- Keep the startup guard active during set_current_win — that call
+            -- fires BufEnter which would otherwise trigger AlphaOnLastClose
+            -- prematurely, causing a double alpha.start and a closed window.
+            for _, win in ipairs(vim.api.nvim_list_wins()) do
+              if vim.api.nvim_win_is_valid(win) and vim.bo[vim.api.nvim_win_get_buf(win)].filetype ~= "neo-tree" then
+                vim.api.nvim_set_current_win(win)
+                break
+              end
             end
-          end
-          -- Draw alpha. start(false) bypasses should_skip_alpha (which would
-          -- otherwise reject us because argc > 0) and creates a fresh buffer.
-          alpha.start(false)
+            -- start(false) bypasses should_skip_alpha (argc > 0 would skip).
+            alpha.start(false)
+            -- Clear only after alpha.start so no intermediate BufEnter can
+            -- sneak through the guard window.
+            vim.g._alpha_dir_startup = nil
+          end, 0)
         end,
       })
 
@@ -455,7 +468,21 @@ return {
       vim.api.nvim_create_autocmd("BufEnter", {
         group = vim.api.nvim_create_augroup("AlphaOnLastClose", { clear = true }),
         callback = function()
+          -- Suppress during dir-arg startup: the empty buffer left after
+          -- wiping the directory buffer is not a "last buffer closed" event.
+          if vim.g._alpha_dir_startup then
+            return
+          end
+          -- Ignore floating windows (telescope, lazy, etc.) — their transient
+          -- empty prompt buffers would otherwise be mistaken for "no buffers".
+          if vim.api.nvim_win_get_config(0).relative ~= "" then
+            return
+          end
           local buf = vim.api.nvim_get_current_buf()
+          -- Skip scratch/plugin buffers (nofile, prompt, terminal, etc.)
+          if vim.bo[buf].buftype ~= "" then
+            return
+          end
           if vim.api.nvim_buf_get_name(buf) ~= "" then
             return
           end
