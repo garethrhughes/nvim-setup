@@ -41,7 +41,7 @@ nvim-setup/
             │   ├── options.lua
             │   ├── keymaps.lua
             │   └── autocmds.lua
-            ├── lazy.lua
+            ├── bootstrap.lua    ← bootstraps lazy.nvim (not lazy.lua — name clash)
             └── plugins/
                 ├── ui.lua
                 ├── editor.lua
