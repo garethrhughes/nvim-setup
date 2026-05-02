@@ -8,35 +8,17 @@ local map = vim.keymap.set
 -- Save with Ctrl+S (normal, insert, visual)
 map({ "n", "i", "v" }, "<C-s>", "<Cmd>w<CR><Esc>", { desc = "Save file" })
 
--- Quit — smart variant: if quitting the last real window would leave only
--- neo-tree, swap the current window to alpha instead so the layout survives.
+-- Quit — VS Code hybrid: on a real file, close the buffer (removes the
+-- bufferline tab); if it's the last, alpha.start handles the transition.
+-- On special buffers (alpha, neo-tree), fall through to :q/:q! so nvim's
+-- normal quit path triggers AlphaQuitOnClose / QuitIfOnlyNeoTree.
 local function smart_quit(force)
-  local real_wins = {}
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    local cfg = vim.api.nvim_win_get_config(win)
-    if cfg.relative == "" then
-      local b = vim.api.nvim_win_get_buf(win)
-      local ft = vim.bo[b].filetype
-      if ft ~= "neo-tree" and ft ~= "alpha" then
-        table.insert(real_wins, win)
-      end
-    end
+  local ft = vim.bo.filetype
+  if ft ~= "alpha" and ft ~= "neo-tree" then
+    require("core.buffer").smart_bdelete(0, force)
+  else
+    vim.cmd(force and "q!" or "q")
   end
-  local has_neotree = false
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == "neo-tree" then
-      has_neotree = true
-      break
-    end
-  end
-  if #real_wins <= 1 and has_neotree then
-    local ok, alpha = pcall(require, "alpha")
-    if ok then
-      alpha.start(false)
-      return
-    end
-  end
-  vim.cmd(force and "q!" or "q")
 end
 
 vim.api.nvim_create_user_command("Q", function(o)

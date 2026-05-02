@@ -513,6 +513,49 @@ return {
           alpha.start(false)
         end,
       })
+
+      -- ── Quit when alpha is closed with no real files open ───────────────
+      -- alpha fires User AlphaClosed when its buffer unloads. If nothing
+      -- useful remains (no listed named buffers, ignoring neo-tree), quit.
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "AlphaClosed",
+        group = vim.api.nvim_create_augroup("AlphaQuitOnClose", { clear = true }),
+        callback = function()
+          -- Defer: alpha's bufhidden=wipe unloads it *before* a newly-opened
+          -- file's buffer is established (e.g. pressing 'f' on a dashboard
+          -- button). Checking synchronously would always see an empty list.
+          vim.schedule(function()
+            for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+              if vim.bo[buf].buflisted and vim.api.nvim_buf_get_name(buf) ~= "" then
+                return
+              end
+            end
+            vim.cmd("qa")
+          end)
+        end,
+      })
+
+      -- ── Quit when only neo-tree windows remain ──────────────────────────
+      -- neo-tree's close_if_last_window = false keeps it alive, but a
+      -- neo-tree-only nvim instance is a dead end — exit instead.
+      vim.api.nvim_create_autocmd("WinClosed", {
+        group = vim.api.nvim_create_augroup("QuitIfOnlyNeoTree", { clear = true }),
+        callback = function()
+          -- Schedule so the window list reflects the just-closed window.
+          vim.schedule(function()
+            local wins = vim.api.nvim_list_wins()
+            for _, w in ipairs(wins) do
+              if vim.api.nvim_win_is_valid(w) then
+                local ft = vim.bo[vim.api.nvim_win_get_buf(w)].filetype
+                if ft ~= "neo-tree" then
+                  return
+                end
+              end
+            end
+            vim.cmd("qa")
+          end)
+        end,
+      })
     end,
   },
 
