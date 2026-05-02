@@ -4,14 +4,16 @@ return {
   {
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
-    event = { "BufReadPost", "BufNewFile" },
+    -- Load at startup: treesitter must be configured before buffers open.
+    -- Lazy-loading on BufReadPost causes config-not-ready errors during install.
+    lazy = false,
     dependencies = {
       "nvim-treesitter/nvim-treesitter-textobjects",
     },
     opts = {
       ensure_installed = {
         "bash",
-        "comment",
+        -- "comment" parser removed in treesitter >=0.9; highlights handled natively
         "css",
         "dockerfile",
         "hcl",
