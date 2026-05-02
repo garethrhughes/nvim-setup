@@ -64,6 +64,7 @@ return {
     },
     config = function(_, opts)
       require("neo-tree").setup(opts)
+      -- Always show the tree; alpha handles the welcome screen in the main window
       vim.cmd("Neotree show")
     end,
   },
