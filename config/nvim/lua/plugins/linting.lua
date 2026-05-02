@@ -15,7 +15,7 @@ return {
         sh = { "shellcheck" },
         bash = { "shellcheck" },
         terraform = { "tflint" },
-        markdown = { "markdownlint_cli2" },
+        markdown = { "markdownlint-cli2" },
         dockerfile = { "hadolint" },
       }
 
