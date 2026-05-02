@@ -1,4 +1,5 @@
 -- LSP: Mason, mason-lspconfig, nvim-lspconfig
+-- Uses the nvim 0.11+ vim.lsp.config / vim.lsp.enable API.
 
 return {
   -- Mason: install LSP servers, formatters, linters
@@ -59,16 +60,17 @@ return {
     end,
   },
 
-  -- Bridge between mason and lspconfig
+  -- Bridge: mason-lspconfig keeps Mason server names → lspconfig name mapping.
+  -- automatic_enable replaces the old .setup() calls when using vim.lsp.enable.
   {
     "williamboman/mason-lspconfig.nvim",
     lazy = true,
     opts = {
-      automatic_installation = true,
+      automatic_enable = true,
     },
   },
 
-  -- LSP configuration
+  -- LSP configuration (nvim 0.11+ API)
   {
     "neovim/nvim-lspconfig",
     event = { "BufReadPre", "BufNewFile" },
@@ -78,48 +80,51 @@ return {
       { "b0o/schemastore.nvim", lazy = true }, -- JSON/YAML schemas
     },
     config = function()
-      local lspconfig = require("lspconfig")
-
-      -- Shared on_attach: keymaps applied once an LSP attaches to a buffer
-      local on_attach = function(_, bufnr)
-        local map = function(keys, func, desc)
-          vim.keymap.set("n", keys, func, { buffer = bufnr, desc = "LSP: " .. desc })
-        end
-
-        map("gd", vim.lsp.buf.definition, "Go to definition")
-        map("gD", vim.lsp.buf.declaration, "Go to declaration")
-        map("gr", vim.lsp.buf.references, "References")
-        map("gI", vim.lsp.buf.implementation, "Go to implementation")
-        map("gy", vim.lsp.buf.type_definition, "Type definition")
-        map("<F12>", vim.lsp.buf.definition, "Go to definition (F12)")
-        map("<F2>", vim.lsp.buf.rename, "Rename symbol")
-        map("<C-.>", vim.lsp.buf.code_action, "Code action")
-        map("<leader>la", vim.lsp.buf.code_action, "Code action")
-        map("<leader>lr", vim.lsp.buf.rename, "Rename")
-        map("<leader>lh", vim.lsp.buf.hover, "Hover docs")
-        map("<leader>ls", vim.lsp.buf.signature_help, "Signature help")
-        map("<leader>lR", "<Cmd>Telescope lsp_references<CR>", "References (Telescope)")
-        map("<leader>ld", "<Cmd>Telescope lsp_definitions<CR>", "Definition (Telescope)")
-
-        -- Format with <S-A-f>
-        vim.keymap.set({ "n", "v" }, "<S-A-f>", function()
-          vim.lsp.buf.format({ async = true })
-        end, { buffer = bufnr, desc = "LSP: Format document" })
-      end
-
-      -- Shared capabilities (extended by nvim-cmp)
+      -- ── Capabilities (shared, extended by nvim-cmp) ─────────────────────
       local capabilities = vim.lsp.protocol.make_client_capabilities()
       local ok, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
       if ok then
         capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
       end
 
-      -- ── Server configs ──────────────────────────────────────────────────
+      -- Apply capabilities globally so every server inherits them.
+      vim.lsp.config("*", { capabilities = capabilities })
+
+      -- ── Keymaps on attach ────────────────────────────────────────────────
+      vim.api.nvim_create_autocmd("LspAttach", {
+        group = vim.api.nvim_create_augroup("nvim_lsp_attach", { clear = true }),
+        callback = function(args)
+          local bufnr = args.buf
+          local map = function(keys, func, desc)
+            vim.keymap.set("n", keys, func, { buffer = bufnr, desc = "LSP: " .. desc })
+          end
+
+          map("gd", vim.lsp.buf.definition, "Go to definition")
+          map("gD", vim.lsp.buf.declaration, "Go to declaration")
+          map("gr", vim.lsp.buf.references, "References")
+          map("gI", vim.lsp.buf.implementation, "Go to implementation")
+          map("gy", vim.lsp.buf.type_definition, "Type definition")
+          map("<F12>", vim.lsp.buf.definition, "Go to definition (F12)")
+          map("<F2>", vim.lsp.buf.rename, "Rename symbol")
+          map("<C-.>", vim.lsp.buf.code_action, "Code action")
+          map("<leader>la", vim.lsp.buf.code_action, "Code action")
+          map("<leader>lr", vim.lsp.buf.rename, "Rename")
+          map("<leader>lh", vim.lsp.buf.hover, "Hover docs")
+          map("<leader>ls", vim.lsp.buf.signature_help, "Signature help")
+          map("<leader>lR", "<Cmd>Telescope lsp_references<CR>", "References (Telescope)")
+          map("<leader>ld", "<Cmd>Telescope lsp_definitions<CR>", "Definition (Telescope)")
+
+          -- Format with <S-A-f>
+          vim.keymap.set({ "n", "v" }, "<S-A-f>", function()
+            vim.lsp.buf.format({ async = true })
+          end, { buffer = bufnr, desc = "LSP: Format document" })
+        end,
+      })
+
+      -- ── Per-server settings ──────────────────────────────────────────────
 
       -- TypeScript / JavaScript
-      lspconfig.vtsls.setup({
-        on_attach = on_attach,
-        capabilities = capabilities,
+      vim.lsp.config("vtsls", {
         settings = {
           typescript = {
             inlayHints = {
@@ -131,16 +136,8 @@ return {
         },
       })
 
-      -- Bash
-      lspconfig.bashls.setup({ on_attach = on_attach, capabilities = capabilities })
-
-      -- Terraform
-      lspconfig.terraformls.setup({ on_attach = on_attach, capabilities = capabilities })
-
       -- YAML (with schema store)
-      lspconfig.yamlls.setup({
-        on_attach = on_attach,
-        capabilities = capabilities,
+      vim.lsp.config("yamlls", {
         settings = {
           yaml = {
             schemaStore = { enable = false, url = "" },
@@ -153,9 +150,7 @@ return {
       })
 
       -- JSON (with schema store)
-      lspconfig.jsonls.setup({
-        on_attach = on_attach,
-        capabilities = capabilities,
+      vim.lsp.config("jsonls", {
         settings = {
           json = {
             schemas = require("schemastore").json.schemas(),
@@ -164,17 +159,8 @@ return {
         },
       })
 
-      -- Markdown
-      lspconfig.marksman.setup({ on_attach = on_attach, capabilities = capabilities })
-
-      -- Docker
-      lspconfig.dockerls.setup({ on_attach = on_attach, capabilities = capabilities })
-      lspconfig.docker_compose_language_service.setup({ on_attach = on_attach, capabilities = capabilities })
-
       -- Lua (for editing this config)
-      lspconfig.lua_ls.setup({
-        on_attach = on_attach,
-        capabilities = capabilities,
+      vim.lsp.config("lua_ls", {
         settings = {
           Lua = {
             workspace = { checkThirdParty = false },
@@ -185,7 +171,12 @@ return {
         },
       })
 
-      -- ── Diagnostic display ──────────────────────────────────────────────
+      -- Servers with no extra settings are handled automatically by
+      -- mason-lspconfig (automatic_enable = true); no explicit enable call
+      -- needed for bashls, terraformls, marksman, dockerls,
+      -- docker_compose_language_service.
+
+      -- ── Diagnostic display ───────────────────────────────────────────────
       vim.diagnostic.config({
         underline = true,
         update_in_insert = false,
