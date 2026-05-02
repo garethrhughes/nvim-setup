@@ -535,27 +535,6 @@ return {
         end,
       })
 
-      -- ── Quit when only neo-tree windows remain ──────────────────────────
-      -- neo-tree's close_if_last_window = false keeps it alive, but a
-      -- neo-tree-only nvim instance is a dead end — exit instead.
-      vim.api.nvim_create_autocmd("WinClosed", {
-        group = vim.api.nvim_create_augroup("QuitIfOnlyNeoTree", { clear = true }),
-        callback = function()
-          -- Schedule so the window list reflects the just-closed window.
-          vim.schedule(function()
-            local wins = vim.api.nvim_list_wins()
-            for _, w in ipairs(wins) do
-              if vim.api.nvim_win_is_valid(w) then
-                local ft = vim.bo[vim.api.nvim_win_get_buf(w)].filetype
-                if ft ~= "neo-tree" then
-                  return
-                end
-              end
-            end
-            vim.cmd("qa")
-          end)
-        end,
-      })
     end,
   },
 

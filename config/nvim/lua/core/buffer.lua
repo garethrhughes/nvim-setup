@@ -31,6 +31,8 @@ function M.smart_bdelete(bufnr, force)
   local is_last = #listed <= 1 and vim.tbl_contains(listed, bufnr)
 
   if is_last then
+    -- Last real buffer: show alpha before deleting so the window stays alive
+    -- and neo-tree doesn't expand to fullscreen.
     local ok, alpha = pcall(require, "alpha")
     if ok then
       for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -41,6 +43,17 @@ function M.smart_bdelete(bufnr, force)
         end
       end
       alpha.start(false)
+    end
+  elseif vim.api.nvim_get_current_buf() == bufnr then
+    -- Not the last buffer, but it IS the current one. Explicitly switch to
+    -- another real buffer first so nvim's internal alt-buffer search (which
+    -- can fail when the buffer history contains wiped alpha buffers) doesn't
+    -- accidentally close the window.
+    for _, b in ipairs(listed) do
+      if b ~= bufnr then
+        vim.api.nvim_set_current_buf(b)
+        break
+      end
     end
   end
   pcall(vim.api.nvim_buf_delete, bufnr, { force = force == true })
