@@ -2,6 +2,11 @@
 
 local opt = vim.opt
 
+-- Disable netrw entirely — neo-tree handles directory browsing.
+-- These must be set before any plugin loads.
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+
 -- Leader (also set in lazy.lua bootstrap, kept here for clarity)
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "

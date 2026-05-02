@@ -8,8 +8,47 @@ local map = vim.keymap.set
 -- Save with Ctrl+S (normal, insert, visual)
 map({ "n", "i", "v" }, "<C-s>", "<Cmd>w<CR><Esc>", { desc = "Save file" })
 
--- Quit
-map("n", "<leader>q", "<Cmd>q<CR>", { desc = "Quit" })
+-- Quit — smart variant: if quitting the last real window would leave only
+-- neo-tree, swap the current window to alpha instead so the layout survives.
+local function smart_quit(force)
+  local real_wins = {}
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local cfg = vim.api.nvim_win_get_config(win)
+    if cfg.relative == "" then
+      local b = vim.api.nvim_win_get_buf(win)
+      local ft = vim.bo[b].filetype
+      if ft ~= "neo-tree" and ft ~= "alpha" then
+        table.insert(real_wins, win)
+      end
+    end
+  end
+  local has_neotree = false
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == "neo-tree" then
+      has_neotree = true
+      break
+    end
+  end
+  if #real_wins <= 1 and has_neotree then
+    local ok, alpha = pcall(require, "alpha")
+    if ok then
+      alpha.start(false)
+      return
+    end
+  end
+  vim.cmd(force and "q!" or "q")
+end
+
+vim.api.nvim_create_user_command("Q", function(o)
+  smart_quit(o.bang)
+end, { bang = true, desc = "Smart quit" })
+
+vim.cmd([[cnoreabbrev <expr> q  (getcmdtype()==':' && getcmdline()==#'q')  ? 'Q'  : 'q']])
+vim.cmd([[cnoreabbrev <expr> q! (getcmdtype()==':' && getcmdline()==#'q!') ? 'Q!' : 'q!']])
+
+map("n", "<leader>q", function()
+  smart_quit(false)
+end, { desc = "Quit" })
 map("n", "<leader>Q", "<Cmd>qa!<CR>", { desc = "Quit all (force)" })
 
 -- Clear search highlight
@@ -42,8 +81,25 @@ map({ "n", "x" }, "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, desc = "Up" }
 
 -- ─── Buffers ────────────────────────────────────────────────────────────────
 
-map("n", "<leader>bd", "<Cmd>bdelete<CR>", { desc = "Delete buffer" })
-map("n", "<leader>bD", "<Cmd>bdelete!<CR>", { desc = "Delete buffer (force)" })
+-- Smart buffer-delete: if this is the last real buffer, draw alpha into the
+-- current window first (so the window stays alive and neo-tree doesn't expand
+-- to fullscreen), then delete the old buffer.
+local smart_bdelete = require("core.buffer").smart_bdelete
+
+vim.api.nvim_create_user_command("Bd", function(o)
+  smart_bdelete(0, o.bang)
+end, { bang = true, desc = "Smart buffer delete" })
+
+-- Abbreviate :bd → :Bd at the cmdline (only when typed as a bare command)
+vim.cmd([[cnoreabbrev <expr> bd  (getcmdtype()==':' && getcmdline()==#'bd')  ? 'Bd'  : 'bd']])
+vim.cmd([[cnoreabbrev <expr> bd! (getcmdtype()==':' && getcmdline()==#'bd!') ? 'Bd!' : 'bd!']])
+
+map("n", "<leader>bd", function()
+  smart_bdelete(0, false)
+end, { desc = "Delete buffer" })
+map("n", "<leader>bD", function()
+  smart_bdelete(0, true)
+end, { desc = "Delete buffer (force)" })
 map("n", "<S-h>", "<Cmd>bprevious<CR>", { desc = "Previous buffer" })
 map("n", "<S-l>", "<Cmd>bnext<CR>", { desc = "Next buffer" })
 

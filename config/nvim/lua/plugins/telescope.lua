@@ -18,11 +18,23 @@ return {
       -- VS Code parity
       { "<C-p>", "<Cmd>Telescope find_files<CR>", desc = "Find files (Ctrl+P)" },
       { "<C-S-p>", "<Cmd>Telescope commands<CR>", desc = "Command palette" },
-      { "<C-S-f>", function() require("telescope").extensions.live_grep_args.live_grep_args() end, desc = "Find in files" },
+      {
+        "<C-S-f>",
+        function()
+          require("telescope").extensions.live_grep_args.live_grep_args()
+        end,
+        desc = "Find in files",
+      },
 
       -- Leader bindings
       { "<leader>ff", "<Cmd>Telescope find_files<CR>", desc = "Find files" },
-      { "<leader>fg", function() require("telescope").extensions.live_grep_args.live_grep_args() end, desc = "Live grep" },
+      {
+        "<leader>fg",
+        function()
+          require("telescope").extensions.live_grep_args.live_grep_args()
+        end,
+        desc = "Live grep",
+      },
       { "<leader>fb", "<Cmd>Telescope buffers sort_mru=true sort_lastused=true<CR>", desc = "Buffers" },
       { "<leader>fh", "<Cmd>Telescope help_tags<CR>", desc = "Help tags" },
       { "<leader>fr", "<Cmd>Telescope oldfiles<CR>", desc = "Recent files" },

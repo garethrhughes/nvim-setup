@@ -112,6 +112,20 @@ return {
     opts = {
       options = {
         diagnostics = "nvim_lsp",
+        close_command = function(bufnr)
+          require("core.buffer").smart_bdelete(bufnr, false)
+        end,
+        right_mouse_command = function(bufnr)
+          require("core.buffer").smart_bdelete(bufnr, false)
+        end,
+        custom_filter = function(buf_number)
+          -- Hide empty unnamed buffers from the bufferline tab strip
+          local name = vim.api.nvim_buf_get_name(buf_number)
+          if name == "" and vim.bo[buf_number].filetype == "" then
+            return false
+          end
+          return true
+        end,
         diagnostics_indicator = function(_, _, diag)
           local icons = { error = " ", warning = " ", hint = " ", info = " " }
           local ret = (diag.error and icons.error .. diag.error .. " " or "")
@@ -230,7 +244,7 @@ return {
   -- ─── Dashboard (alpha-nvim) ──────────────────────────────────────────────
   {
     "goolord/alpha-nvim",
-    lazy = false,
+    event = "VimEnter",
     dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
       local alpha = require("alpha")
@@ -320,23 +334,36 @@ return {
         { "  <C-e>", "Abort", nil },
       }
 
-      -- Build lines: left-pad, right-align key description pairs
-      local lines = {}
-      for _, row in ipairs(cs) do
-        local key, desc = row[1], row[2]
-        if desc == nil then
-          -- Section heading
-          table.insert(lines, key)
-        elseif key == "" then
-          table.insert(lines, "")
-        else
-          table.insert(lines, string.format("%-22s  %s", key, desc))
+      -- Build lines dynamically at draw time so they fit the available width.
+      -- Available width = total columns minus neo-tree sidebar (35) minus separator (1).
+      local function build_body_lines()
+        local sidebar_w = 36 -- neo-tree width (35) + border
+        local avail = math.max(40, vim.o.columns - sidebar_w)
+        local key_w = 22
+        local sep = "  "
+        local desc_w = avail - key_w - #sep
+        local out = {}
+        for _, row in ipairs(cs) do
+          local key, desc = row[1], row[2]
+          if desc == nil then
+            table.insert(out, key)
+          elseif key == "" then
+            table.insert(out, "")
+          else
+            -- Truncate description if it overflows
+            local d = desc
+            if #d > desc_w and desc_w > 3 then
+              d = d:sub(1, desc_w - 1) .. "…"
+            end
+            table.insert(out, string.format("%-" .. key_w .. "s%s%s", key, sep, d))
+          end
         end
+        return out
       end
 
       dashboard.section.body = {
         type = "text",
-        val = lines,
+        val = build_body_lines,
         opts = {
           position = "center",
           hl = "AlphaBody",
@@ -369,18 +396,94 @@ return {
         dashboard.section.footer,
       }
 
+      dashboard.config.opts = vim.tbl_extend("force", dashboard.config.opts or {}, {
+        -- autostart = true: alpha handles the no-arg case itself, calling
+        -- start(true) which reuses buffer #1 (so no [No Name] in bufferline).
+        autostart = true,
+        redraw_on_resize = true,
+      })
+
       alpha.setup(dashboard.config)
 
-      -- Open alpha when Neovim starts with no file arguments
+      -- ── Directory-arg startup ───────────────────────────────────────────
+      -- For `nvim .` (or any single dir arg): cd into it, drop the directory
+      -- buffer nvim created, draw alpha into the current window, then open
+      -- neo-tree. We force-bypass alpha's should_skip_alpha guard by calling
+      -- start(true) only after we've cleared the dir buffer's contents.
       vim.api.nvim_create_autocmd("VimEnter", {
-        group = vim.api.nvim_create_augroup("AlphaOnStart", { clear = true }),
+        group = vim.api.nvim_create_augroup("AlphaDirArg", { clear = true }),
+        nested = true,
+        once = true,
         callback = function()
-          local buf_name = vim.api.nvim_buf_get_name(0)
-          local lines = vim.api.nvim_buf_get_lines(0, 0, 2, false)
-          local is_empty = buf_name == "" and #lines == 1 and lines[1] == ""
-          if is_empty then
-            require("alpha").start(false)
+          if vim.fn.argc() ~= 1 then
+            return
           end
+          local arg = vim.fn.argv(0)
+          if vim.fn.isdirectory(arg) ~= 1 then
+            return
+          end
+          vim.cmd("cd " .. vim.fn.fnameescape(arg))
+          -- Wipe the directory buffer that argv created
+          for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+            if vim.api.nvim_buf_is_valid(buf) then
+              local name = vim.api.nvim_buf_get_name(buf)
+              if name ~= "" and vim.fn.isdirectory(name) == 1 then
+                pcall(vim.api.nvim_buf_delete, buf, { force = true })
+              end
+            end
+          end
+          -- Open neo-tree FIRST so alpha renders into its final width
+          -- (avoids the flicker where alpha draws fullscreen then shifts right
+          -- when neo-tree opens).
+          vim.cmd("Neotree show")
+          -- Move focus back to the main window
+          for _, win in ipairs(vim.api.nvim_list_wins()) do
+            if vim.bo[vim.api.nvim_win_get_buf(win)].filetype ~= "neo-tree" then
+              vim.api.nvim_set_current_win(win)
+              break
+            end
+          end
+          -- Draw alpha. start(false) bypasses should_skip_alpha (which would
+          -- otherwise reject us because argc > 0) and creates a fresh buffer.
+          alpha.start(false)
+        end,
+      })
+
+      -- ── Safety net: return to alpha on entering empty unnamed buffer ────
+      -- When the last real buffer is closed nvim may land on a fresh empty
+      -- [No Name] buffer; swap it for alpha so the dashboard reappears.
+      vim.api.nvim_create_autocmd("BufEnter", {
+        group = vim.api.nvim_create_augroup("AlphaOnLastClose", { clear = true }),
+        callback = function()
+          local buf = vim.api.nvim_get_current_buf()
+          if vim.api.nvim_buf_get_name(buf) ~= "" then
+            return
+          end
+          local lines = vim.api.nvim_buf_get_lines(buf, 0, 2, false)
+          if #lines > 1 or (#lines == 1 and lines[1] ~= "") then
+            return
+          end
+          if vim.bo[buf].filetype == "alpha" then
+            return
+          end
+          -- Only fire if no other real buffers (excluding empty unnamed ones,
+          -- alpha, and neo-tree) exist
+          for _, b in ipairs(vim.api.nvim_list_bufs()) do
+            if b ~= buf and vim.bo[b].buflisted then
+              local ft = vim.bo[b].filetype
+              if ft ~= "alpha" and ft ~= "neo-tree" then
+                local bname = vim.api.nvim_buf_get_name(b)
+                if bname ~= "" then
+                  return
+                end
+                local blines = vim.api.nvim_buf_get_lines(b, 0, 2, false)
+                if #blines > 1 or (#blines == 1 and blines[1] ~= "") then
+                  return
+                end
+              end
+            end
+          end
+          alpha.start(false)
         end,
       })
     end,

@@ -22,14 +22,22 @@ return {
 
         -- Navigation
         map("n", "]h", function()
-          if vim.wo.diff then return "]c" end
-          vim.schedule(function() gs.next_hunk() end)
+          if vim.wo.diff then
+            return "]c"
+          end
+          vim.schedule(function()
+            gs.next_hunk()
+          end)
           return "<Ignore>"
         end, "Next hunk")
 
         map("n", "[h", function()
-          if vim.wo.diff then return "[c" end
-          vim.schedule(function() gs.prev_hunk() end)
+          if vim.wo.diff then
+            return "[c"
+          end
+          vim.schedule(function()
+            gs.prev_hunk()
+          end)
           return "<Ignore>"
         end, "Previous hunk")
 
@@ -40,10 +48,14 @@ return {
         map("n", "<leader>gu", gs.undo_stage_hunk, "Undo stage hunk")
         map("n", "<leader>gR", gs.reset_buffer, "Reset buffer")
         map("n", "<leader>gp", gs.preview_hunk, "Preview hunk")
-        map("n", "<leader>gb", function() gs.blame_line({ full = true }) end, "Blame line")
+        map("n", "<leader>gb", function()
+          gs.blame_line({ full = true })
+        end, "Blame line")
         map("n", "<leader>gB", gs.toggle_current_line_blame, "Toggle line blame")
         map("n", "<leader>gd", gs.diffthis, "Diff this")
-        map("n", "<leader>gD", function() gs.diffthis("~") end, "Diff this (cached)")
+        map("n", "<leader>gD", function()
+          gs.diffthis("~")
+        end, "Diff this (cached)")
 
         -- Text object: ih / ah for hunk
         map({ "o", "x" }, "ih", ":<C-U>Gitsigns select_hunk<CR>", "Select hunk")

@@ -5,7 +5,6 @@ return {
     "nvim-neo-tree/neo-tree.nvim",
     branch = "v3.x",
     cmd = "Neotree",
-    event = "VimEnter",
     dependencies = {
       "nvim-lua/plenary.nvim",
       "nvim-tree/nvim-web-devicons",
@@ -17,7 +16,7 @@ return {
       { "<leader>fE", "<Cmd>Neotree reveal<CR>", desc = "Reveal current file" },
     },
     opts = {
-      close_if_last_window = true,
+      close_if_last_window = false,
       popup_border_style = "rounded",
       enable_git_status = true,
       enable_diagnostics = true,
@@ -50,7 +49,7 @@ return {
       },
       filesystem = {
         follow_current_file = { enabled = true },
-        hijack_netrw_behavior = "open_current",
+        hijack_netrw_behavior = "disabled",
         use_libuv_file_watcher = true,
         filtered_items = {
           visible = false,
@@ -64,8 +63,6 @@ return {
     },
     config = function(_, opts)
       require("neo-tree").setup(opts)
-      -- Always show the tree; alpha handles the welcome screen in the main window
-      vim.cmd("Neotree show")
     end,
   },
 }
