@@ -5,6 +5,7 @@ return {
     "nvim-neo-tree/neo-tree.nvim",
     branch = "v3.x",
     cmd = "Neotree",
+    event = "VimEnter",
     dependencies = {
       "nvim-lua/plenary.nvim",
       "nvim-tree/nvim-web-devicons",
@@ -61,5 +62,9 @@ return {
       buffers = { follow_current_file = { enabled = true } },
       git_status = { window = { position = "float" } },
     },
+    config = function(_, opts)
+      require("neo-tree").setup(opts)
+      vim.cmd("Neotree show")
+    end,
   },
 }
