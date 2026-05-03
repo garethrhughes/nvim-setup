@@ -117,6 +117,16 @@ elif [[ "$PLATFORM" == "linux" ]]; then
     ok "Node.js $(node --version) already installed"
   fi
 
+  _install_nvim_linux() {
+    local tmp
+    tmp="$(mktemp -d)"
+    curl -fsSL https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz \
+      -o "${tmp}/nvim.tar.gz"
+    tar -xzf "${tmp}/nvim.tar.gz" -C "${tmp}"
+    sudo install -m 755 "${tmp}/nvim-linux64/bin/nvim" /usr/local/bin/nvim
+    rm -rf "$tmp"
+  }
+
   # Neovim: install from GitHub releases if system version is too old
   if has nvim; then
     NVIM_VER="$(nvim --version | head -1 | grep -oP '\d+\.\d+' | head -1)"
@@ -129,15 +139,6 @@ elif [[ "$PLATFORM" == "linux" ]]; then
       _install_nvim_linux
     fi
   else
-    _install_nvim_linux() {
-      local tmp
-      tmp="$(mktemp -d)"
-      curl -fsSL https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz \
-        -o "${tmp}/nvim.tar.gz"
-      tar -xzf "${tmp}/nvim.tar.gz" -C "${tmp}"
-      sudo install -m 755 "${tmp}/nvim-linux64/bin/nvim" /usr/local/bin/nvim
-      rm -rf "$tmp"
-    }
     log "Installing Neovim from GitHub releases..."
     _install_nvim_linux
   fi
@@ -147,7 +148,6 @@ elif [[ "$PLATFORM" == "linux" ]]; then
     log "Installing lazygit..."
     LAZYGIT_VERSION="$(curl -s https://api.github.com/repos/jesseduffield/lazygit/releases/latest \
       | grep '"tag_name"' | cut -d'"' -f4 | tr -d v)"
-    local tmp
     tmp="$(mktemp -d)"
     curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz" \
       -o "${tmp}/lazygit.tar.gz"
