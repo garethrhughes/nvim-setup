@@ -25,8 +25,18 @@ vim.api.nvim_create_user_command("Q", function(o)
   smart_quit(o.bang)
 end, { bang = true, desc = "Smart quit" })
 
-vim.cmd([[cnoreabbrev <expr> q  (getcmdtype()==':' && getcmdline()==#'q')  ? 'Q'  : 'q']])
-vim.cmd([[cnoreabbrev <expr> q! (getcmdtype()==':' && getcmdline()==#'q!') ? 'Q!' : 'q!']])
+vim.api.nvim_create_user_command("Wq", function(o)
+  local ft = vim.bo.filetype
+  if ft ~= "alpha" and ft ~= "neo-tree" then
+    vim.cmd(o.bang and "write!" or "write")
+  end
+  smart_quit(o.bang)
+end, { bang = true, desc = "Write and smart quit" })
+
+vim.cmd([[cnoreabbrev <expr> q   (getcmdtype()==':' && getcmdline()==#'q')   ? 'Q'   : 'q']])
+vim.cmd([[cnoreabbrev <expr> q!  (getcmdtype()==':' && getcmdline()==#'q!')  ? 'Q!'  : 'q!']])
+vim.cmd([[cnoreabbrev <expr> wq  (getcmdtype()==':' && getcmdline()==#'wq')  ? 'Wq'  : 'wq']])
+vim.cmd([[cnoreabbrev <expr> wq! (getcmdtype()==':' && getcmdline()==#'wq!') ? 'Wq!' : 'wq!']])
 
 map("n", "<leader>q", function()
   smart_quit(false)
