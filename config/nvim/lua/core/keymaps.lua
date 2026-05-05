@@ -12,9 +12,13 @@ map({ "n", "i", "v" }, "<C-s>", "<Cmd>w<CR><Esc>", { desc = "Save file" })
 -- bufferline tab); if it's the last, alpha.start handles the transition.
 -- On special buffers (alpha, neo-tree), fall through to :q/:q! so nvim's
 -- normal quit path triggers AlphaQuitOnClose / QuitIfOnlyNeoTree.
-local function smart_quit(force)
+local function is_special_buffer()
   local ft = vim.bo.filetype
-  if ft ~= "alpha" and ft ~= "neo-tree" then
+  return ft == "alpha" or ft == "neo-tree"
+end
+
+local function smart_quit(force)
+  if not is_special_buffer() then
     require("core.buffer").smart_bdelete(0, force)
   else
     vim.cmd(force and "q!" or "q")
@@ -25,8 +29,17 @@ vim.api.nvim_create_user_command("Q", function(o)
   smart_quit(o.bang)
 end, { bang = true, desc = "Smart quit" })
 
-vim.cmd([[cnoreabbrev <expr> q  (getcmdtype()==':' && getcmdline()==#'q')  ? 'Q'  : 'q']])
-vim.cmd([[cnoreabbrev <expr> q! (getcmdtype()==':' && getcmdline()==#'q!') ? 'Q!' : 'q!']])
+vim.api.nvim_create_user_command("Wq", function(o)
+  if not is_special_buffer() then
+    vim.cmd(o.bang and "write!" or "write")
+  end
+  smart_quit(o.bang)
+end, { bang = true, desc = "Write and smart quit" })
+
+vim.cmd([[cnoreabbrev <expr> q   (getcmdtype()==':' && getcmdline()==#'q')   ? 'Q'   : 'q']])
+vim.cmd([[cnoreabbrev <expr> q!  (getcmdtype()==':' && getcmdline()==#'q!')  ? 'Q!'  : 'q!']])
+vim.cmd([[cnoreabbrev <expr> wq  (getcmdtype()==':' && getcmdline()==#'wq')  ? 'Wq'  : 'wq']])
+vim.cmd([[cnoreabbrev <expr> wq! (getcmdtype()==':' && getcmdline()==#'wq!') ? 'Wq!' : 'wq!']])
 
 map("n", "<leader>q", function()
   smart_quit(false)
