@@ -12,9 +12,6 @@ return {
     branch = "main",
     build = ":TSUpdate",
     lazy = false,
-    dependencies = {
-      { "nvim-treesitter/nvim-treesitter-textobjects", branch = "main" },
-    },
     config = function()
       require("nvim-treesitter").setup()
       -- Install missing parsers asynchronously; already-installed ones are
