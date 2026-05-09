@@ -1,0 +1,11 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Editor / tooling state
+*.swp
+*.swo
+.vim-session
+
+# install.sh-created backups (timestamped)
+*.bak.*

@@ -37,6 +37,11 @@ augroup("RestoreCursor", { clear = true })
 autocmd("BufReadPost", {
   group = "RestoreCursor",
   callback = function()
+    -- Skip filetypes where starting at line 1 is the right behaviour.
+    local skip = { "gitcommit", "gitrebase", "svn", "hgcommit" }
+    if vim.tbl_contains(skip, vim.bo.filetype) then
+      return
+    end
     local mark = vim.api.nvim_buf_get_mark(0, '"')
     local lcount = vim.api.nvim_buf_line_count(0)
     if mark[1] > 0 and mark[1] <= lcount then
@@ -69,19 +74,5 @@ autocmd("FileType", {
   end,
 })
 
--- ─── Auto-remove trailing whitespace on save ─────────────────────────────────
-augroup("TrimWhitespace", { clear = true })
-autocmd("BufWritePre", {
-  group = "TrimWhitespace",
-  pattern = "*",
-  callback = function()
-    -- Don't touch files handled by a formatter (conform will deal with them)
-    local ok, conform = pcall(require, "conform")
-    if ok and conform.get_formatter_info then
-      return
-    end
-    local pos = vim.api.nvim_win_get_cursor(0)
-    vim.cmd([[%s/\s\+$//e]])
-    vim.api.nvim_win_set_cursor(0, pos)
-  end,
-})
+-- Trailing-whitespace trimming is handled by conform.nvim formatters
+-- (prettierd, stylua, shfmt, etc.) on save.

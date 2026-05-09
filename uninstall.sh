@@ -28,7 +28,7 @@ LATEST_BACKUP="$(ls -dt "${NVIM_CONFIG_DST}.bak."* 2>/dev/null | head -1 || true
 
 if [[ -n "$LATEST_BACKUP" ]]; then
   read -rp "Restore backup ${LATEST_BACKUP}? [y/N] " answer
-  if [[ "${answer,,}" == "y" ]]; then
+  if [[ "$answer" =~ ^[Yy]$ ]]; then
     mv "$LATEST_BACKUP" "${NVIM_CONFIG_DST}"
     ok "Restored ${LATEST_BACKUP} → ${NVIM_CONFIG_DST}"
   else

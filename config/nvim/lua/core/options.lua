@@ -7,7 +7,7 @@ local opt = vim.opt
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
--- Leader (also set in lazy.lua bootstrap, kept here for clarity)
+-- Leader must be set before any keymap that uses <leader> is registered.
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
@@ -15,7 +15,7 @@ opt.fillchars = { eob = " " }
 
 -- UI
 opt.number = true
-opt.relativenumber = true
+opt.relativenumber = false
 opt.signcolumn = "yes"
 opt.cursorline = true
 opt.termguicolors = true
