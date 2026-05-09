@@ -44,7 +44,13 @@ case "$OS" in
   *) die "Unsupported OS: ${OS}" ;;
 esac
 
-log "Detected platform: ${PLATFORM}"
+case "$(uname -m)" in
+  x86_64|amd64) ARCH="x86_64" ;;
+  aarch64|arm64) ARCH="arm64" ;;
+  *) die "Unsupported architecture: $(uname -m)" ;;
+esac
+
+log "Detected platform: ${PLATFORM} (${ARCH})"
 
 # ─── Install prerequisites ───────────────────────────────────────────────────
 
@@ -118,12 +124,13 @@ elif [[ "$PLATFORM" == "linux" ]]; then
   fi
 
   _install_nvim_linux() {
-    local tmp
+    local tmp asset
     tmp="$(mktemp -d)"
-    curl -fsSL https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz \
+    asset="nvim-linux-${ARCH}.tar.gz"
+    curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/${asset}" \
       -o "${tmp}/nvim.tar.gz"
     tar -xzf "${tmp}/nvim.tar.gz" -C "${tmp}"
-    sudo install -m 755 "${tmp}/nvim-linux64/bin/nvim" /usr/local/bin/nvim
+    sudo install -m 755 "${tmp}/nvim-linux-${ARCH}/bin/nvim" /usr/local/bin/nvim
     rm -rf "$tmp"
   }
 
@@ -149,7 +156,7 @@ elif [[ "$PLATFORM" == "linux" ]]; then
     LAZYGIT_VERSION="$(curl -s https://api.github.com/repos/jesseduffield/lazygit/releases/latest \
       | grep '"tag_name"' | cut -d'"' -f4 | tr -d v)"
     tmp="$(mktemp -d)"
-    curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz" \
+    curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_linux_${ARCH}.tar.gz" \
       -o "${tmp}/lazygit.tar.gz"
     tar -xzf "${tmp}/lazygit.tar.gz" -C "${tmp}"
     sudo install -m 755 "${tmp}/lazygit" /usr/local/bin/lazygit
@@ -206,8 +213,9 @@ cat <<'EOF'
 │  Next steps:                                                    │
 │    1. Set your terminal font to: JetBrainsMono Nerd Font        │
 │    2. Open Neovim:  nvim                                        │
-│    3. Run:  :checkhealth                                        │
-│    4. Run:  :Mason   (verify LSP servers are installed)         │
+│       (first launch installs Mason packages — give it a minute) │
+│    3. Run:  :Mason   (verify LSP servers/formatters installed)  │
+│    4. Run:  :checkhealth                                        │
 │    5. Run:  :Lazy    (verify all plugins loaded)                │
 │                                                                 │
 │  See CHEATSHEET.md for the full keymap reference.               │

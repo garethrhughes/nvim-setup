@@ -61,8 +61,5 @@ return {
       buffers = { follow_current_file = { enabled = true } },
       git_status = { window = { position = "float" } },
     },
-    config = function(_, opts)
-      require("neo-tree").setup(opts)
-    end,
   },
 }

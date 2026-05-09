@@ -5,7 +5,11 @@ return {
   -- Mason: install LSP servers, formatters, linters
   {
     "williamboman/mason.nvim",
-    cmd = "Mason",
+    -- Load early on every nvim launch so ensure_installed runs without needing
+    -- :Mason to be invoked first. cmd = "Mason" alone would defer installs
+    -- until the first explicit :Mason call.
+    cmd = { "Mason", "MasonInstall", "MasonUpdate", "MasonLog", "MasonUninstall", "MasonUninstallAll" },
+    event = "VeryLazy",
     build = ":MasonUpdate",
     opts = {
       ensure_installed = {
@@ -104,6 +108,7 @@ return {
           map("gr", vim.lsp.buf.references, "References")
           map("gI", vim.lsp.buf.implementation, "Go to implementation")
           map("gy", vim.lsp.buf.type_definition, "Type definition")
+          map("K", vim.lsp.buf.hover, "Hover docs")
           map("<F12>", vim.lsp.buf.definition, "Go to definition (F12)")
           map("<F2>", vim.lsp.buf.rename, "Rename symbol")
           map("<C-.>", vim.lsp.buf.code_action, "Code action")

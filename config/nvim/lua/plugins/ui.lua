@@ -41,11 +41,7 @@ return {
     },
     config = function(_, opts)
       require("catppuccin").setup(opts)
-      -- vim.schedule defers until after lazy.nvim has finished updating the rtp,
-      -- preventing the "theme not found" warning during :Lazy sync.
-      vim.schedule(function()
-        vim.cmd.colorscheme("catppuccin")
-      end)
+      vim.cmd.colorscheme("catppuccin")
     end,
   },
 
@@ -64,7 +60,7 @@ return {
       options = {
         theme = "catppuccin-mocha",
         globalstatus = true,
-        disabled_filetypes = { statusline = { "dashboard", "alpha" } },
+        disabled_filetypes = { statusline = { "dashboard", "alpha", "neo-tree" } },
         component_separators = { left = "", right = "" },
         section_separators = { left = "", right = "" },
       },
@@ -145,9 +141,6 @@ return {
         separator_style = "slope",
       },
     },
-    config = function(_, opts)
-      require("bufferline").setup(opts)
-    end,
   },
 
   -- ─── Notifications ───────────────────────────────────────────────────────
@@ -596,9 +589,5 @@ return {
         { "<leader>x", group = "diagnostics" },
       },
     },
-    config = function(_, opts)
-      local wk = require("which-key")
-      wk.setup(opts)
-    end,
   },
 }

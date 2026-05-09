@@ -53,22 +53,26 @@ map("n", "<Esc>", "<Cmd>nohlsearch<CR>", { desc = "Clear search highlight" })
 
 -- Duplicate line (VS Code: Shift+Alt+Down)
 map("n", "<S-A-Down>", "<Cmd>copy .<CR>", { desc = "Duplicate line down" })
-map("i", "<S-A-Down>", "<Esc><Cmd>copy .<CR>gi", { desc = "Duplicate line down" })
+map("i", "<S-A-Down>", function()
+  -- :copy . duplicates current line; preserve column so the cursor lands on
+  -- the same character of the new line, matching VS Code behaviour.
+  local pos = vim.api.nvim_win_get_cursor(0)
+  vim.cmd("copy .")
+  vim.api.nvim_win_set_cursor(0, { pos[1] + 1, pos[2] })
+end, { desc = "Duplicate line down" })
 
--- Move selected lines (handled by mini.move in visual; these cover normal mode)
-map("n", "<A-Up>", "<Cmd>move .-2<CR>==", { desc = "Move line up" })
-map("n", "<A-Down>", "<Cmd>move .+1<CR>==", { desc = "Move line down" })
-map("v", "<A-Up>", ":move '<-2<CR>gv=gv", { desc = "Move selection up" })
-map("v", "<A-Down>", ":move '>+1<CR>gv=gv", { desc = "Move selection down" })
+-- A-Up / A-Down for line/selection move are provided by mini.move.
 
 -- Indent / de-indent in visual and keep selection
 map("v", "<", "<gv", { desc = "Indent left" })
 map("v", ">", ">gv", { desc = "Indent right" })
 
--- Toggle comment with Ctrl+/ (handled by Comment.nvim but we map here for discoverability)
--- Comment.nvim maps gcc in normal and gc in visual; the <C-/> map below delegates to it.
+-- Toggle comment with Ctrl+/ (handled by Comment.nvim but we map here for discoverability).
+-- Some terminals deliver Ctrl+/ as <C-_>, so map both for portability.
 map("n", "<C-/>", "gcc", { desc = "Toggle comment", remap = true })
 map("v", "<C-/>", "gc", { desc = "Toggle comment", remap = true })
+map("n", "<C-_>", "gcc", { desc = "Toggle comment", remap = true })
+map("v", "<C-_>", "gc", { desc = "Toggle comment", remap = true })
 
 -- Better up/down on wrapped lines
 map({ "n", "x" }, "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, desc = "Down" })
@@ -111,8 +115,12 @@ map("n", "<C-l>", "<C-w>l", { desc = "Go to right window" })
 
 -- ─── Diagnostics ────────────────────────────────────────────────────────────
 
-map("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
-map("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
+map("n", "[d", function()
+  vim.diagnostic.jump({ count = -1, float = true })
+end, { desc = "Previous diagnostic" })
+map("n", "]d", function()
+  vim.diagnostic.jump({ count = 1, float = true })
+end, { desc = "Next diagnostic" })
 map("n", "<leader>e", vim.diagnostic.open_float, { desc = "Show diagnostic (float)" })
 
 -- ─── Misc ───────────────────────────────────────────────────────────────────

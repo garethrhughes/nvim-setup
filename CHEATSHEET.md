@@ -49,7 +49,6 @@
 | Select outer / inner block | `ab` / `ib` |
 | Next / prev function start | `]f` / `[f` |
 | Next / prev class start | `]c` / `[c` |
-| Swap parameter with next | `<leader>a` |
 
 ---
 
@@ -60,7 +59,7 @@
 | `Ctrl+P` Quick Open | `<C-p>` |
 | `Ctrl+Shift+P` Command Palette | `<C-S-p>` |
 | `Ctrl+Shift+F` Find in Files | `<C-S-f>` |
-| `Ctrl+/` Toggle Comment | `<C-/>` |
+| `Ctrl+/` Toggle Comment | `<C-/>` (or `<C-_>`) |
 | `Ctrl+B` Toggle Sidebar | `<C-b>` |
 | `Ctrl+`` Toggle Terminal | `<C-`>` |
 | `Ctrl+S` Save | `<C-s>` |
@@ -129,6 +128,7 @@
 | `<leader>ls` | Signature help |
 | `<leader>lR` | References (Telescope) |
 | `<leader>ld` | Definition (Telescope) |
+| `K` | Hover docs |
 | `gd` | Go to definition |
 | `gD` | Go to declaration |
 | `gr` | References |
@@ -235,8 +235,8 @@ Inside a Telescope picker:
 
 | Action | Key |
 |---|---|
-| Toggle line comment | `gcc` or `<C-/>` |
-| Toggle visual comment | `gc` or `<C-/>` |
+| Toggle line comment | `gcc` or `<C-/>` (or `<C-_>`) |
+| Toggle visual comment | `gc` or `<C-/>` (or `<C-_>`) |
 | Block comment | `gbc` |
 
 ### Pairs (nvim-autopairs)

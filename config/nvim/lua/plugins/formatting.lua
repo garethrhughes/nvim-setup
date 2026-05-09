@@ -9,7 +9,7 @@ return {
       {
         "<S-A-f>",
         function()
-          require("conform").format({ async = true, lsp_fallback = true })
+          require("conform").format({ async = true, lsp_format = "fallback" })
         end,
         mode = { "n", "v" },
         desc = "Format document",
@@ -60,7 +60,7 @@ return {
         if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
           return
         end
-        return { timeout_ms = 3000, lsp_fallback = true }
+        return { timeout_ms = 3000, lsp_format = "fallback" }
       end,
     },
     config = function(_, opts)
