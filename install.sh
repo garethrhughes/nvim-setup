@@ -74,6 +74,7 @@ if [[ "$PLATFORM" == "macos" ]]; then
     curl
     lazygit
     wget
+    tree-sitter-cli
   )
 
   for pkg in "${BREW_PACKAGES[@]}"; do
